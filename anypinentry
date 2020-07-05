@@ -8,7 +8,7 @@ if [[ -z "$DISPLAY" ]]; then
 fi
 
 title="";
-AP_PROMPT="Password :: ";
+prompt_string="Password :: ";
 description="";
 keyinfo="";
 repeat="";
@@ -19,12 +19,15 @@ AP_NO="No";
 prompt_action='dmenu -P -p "$AP_PROMPT"';
 confirm_action='echo -e "$AP_YES\n$AP_NO" | dmenu -p "$AP_PROMPT"';
 
+# :: Prompt string (default if empty)
 ask_password() {
-  export AP_PROMPT;
+  export AP_PROMPT="${1:-"$prompt_string"}";
   echo -n '' | bash -c "$prompt_action" 2> /dev/null;
 }
+# :: Prompt string (default if empty)
 confirm() {
-  export AP_PROMPT; export AP_YES; export AP_NO;
+  export AP_PROMPT="${1:-"$prompt_string"}";
+  export AP_YES; export AP_NO;
   echo -n '' | bash -c "$confirm_action" 2> /dev/null;
 }
 
@@ -46,23 +49,28 @@ get_info() {
   esac;
 }
 
-
+# :: Repeat string -> Password -> OK | ERR
 password_prompt() {
   local pass="";
-  if pass=$(ask_password); then
-    if [[ "$repeat" == "repeat" ]]; then
-      repeat="";
-      password_prompt "$pass";
+  if pass=$(ask_password "$([[ -z "$1" ]] && echo "$repeat")"); then
+    if [[ ! -z "$1" ]]; then
+      password_prompt ""  "$pass";
     else
-      [[ ! -z "$pass" ]] && echo "D $pass";
-      echo "OK";
-      # Compare $1 with pass
+      # If password repeat attempt failed, try again,
+      # Else continue
+      if [[ ! -z "$2" ]] && [[ "$pass" != "$2" ]]; then
+        password_prompt "$repeat";
+      else
+        [[ ! -z "$pass" ]] && echo "D $pass";
+        echo "OK";
+      fi;
     fi;
   else
     cancelled_error;
   fi;
 }
 
+# :: OK | ERR
 confirm_prompt() {
   local res=$(confirm);
   [[ "$res" == "$AP_YES" ]] && echo "OK" || cancelled_error;
@@ -72,17 +80,18 @@ interpret_command() {
   cmd="$(echo "$1" | cut -d' ' -f1)";
   data="$(echo "$1" | cut -d' ' -f2-)";
 
+  # Case insensitive search
   case "${cmd^^}" in
     INIT)          echo "OK Pleased to meet you" ;;
     OPTION)        save_option "$data" ;;
     GETINFO)       get_info "$data" ;;
     SETTITLE)      title="$data" && echo "OK" ;;
-    SETPROMPT)     AP_PROMPT="$data" && echo "OK" ;;
+    SETPROMPT)     prompt_string="$data" && echo "OK" ;;
     SETKEYINFO)    keyinfo="$data" && echo "OK" ;;
-    SETREPEAT)     repeat="$data" && echo "OK" ;;
+    SETREPEAT)     repeat="${data:-"repeat"}" && echo "OK" ;;
     SETDESC)       description="$data" && echo "OK" ;;
     CONFIRM)       confirm_prompt ;;
-    GETPIN)        password_prompt ;;
+    GETPIN)        password_prompt "$repeat" "" ;;
     BYE)           echo "OK closing connection" && exit 0 ;;
     *)             echo "OK" ;;
   esac;
@@ -122,7 +131,6 @@ while read line; do
   interpret_command "$line";
 done;
 
-      #{ "SETREPEAT",  cmd_setrepeat },
       #{ "SETREPEATERROR", cmd_setrepeaterror },
       #{ "SETERROR",   cmd_seterror },
       #{ "SETOK",      cmd_setok },
