@@ -8,14 +8,16 @@ if [[ -z "$DISPLAY" ]]; then
 fi
 
 title="";
-prompt="";
+prompt="Password :: ";
 description="";
 keyinfo="";
 
-prompt_action="";
+prompt_action='dmenu -P -p "$AP_PROMPT"';
+confirm_action='';
 
 ask_password() {
-  dmenu -P -p "$prompt" 2> /dev/null;
+  export AP_PROMPT="$prompt";
+  echo -n '' | bash -c "$prompt_action" 2> /dev/null;
 }
 
 save_option() {
@@ -78,8 +80,6 @@ parse_cliargs() {
 }
 
 parse_cliargs "$@";
-
-exit 0;
 
 interpret_command "INIT";
 
