@@ -12,6 +12,8 @@ prompt="";
 description="";
 keyinfo="";
 
+prompt_action="";
+
 ask_password() {
   dmenu -P -p "$prompt" 2> /dev/null;
 }
@@ -37,12 +39,12 @@ password_prompt() {
   fi;
 }
 
-echo "OK Pleased to meet you";
-while read line; do
-  cmd="$(echo "$line" | cut -d' ' -f1)";
-  data="$(echo "$line" | cut -d' ' -f2-)";
+interpret_command() {
+  cmd="$(echo "$1" | cut -d' ' -f1)";
+  data="$(echo "$1" | cut -d' ' -f2-)";
 
   case "$cmd" in
+    INIT) echo "OK Pleased to meet you" ;;
     OPTION) save_option "$data" ;;
     GETINFO) get_info "$data" ;;
     SETTITLE) title="$data" && echo "OK" ;;
@@ -53,6 +55,36 @@ while read line; do
     BYE) echo "OK closing connection" && exit 0; ;;
     *) echo "OK" ;;
   esac;
+}
+
+help() {
+  echo "Usage: $0 [-D DISPLAY] [--prompt script] [--confirm script] [-hv]";
+}
+
+parse_cliargs() {
+  [[ $# -le 0 ]] && return 0;
+
+  case "$1" in
+    -D|--display) export DISPLAY="$2"; shift 1 ;;
+    --prompt) prompt_action="$2"; shift 1 ;;
+    --confirm) confirm_action="$2"; shift 1 ;;
+    -v) echo "anypinentry-$VERSION" && exit 0 ;;
+    -h) help && exit 0 ;;
+    *) help && exit 1 ;;
+  esac;
+
+  shift 1;
+  parse_cliargs "$@";
+}
+
+parse_cliargs "$@";
+
+exit 0;
+
+interpret_command "INIT";
+
+while read line; do
+  interpret_command "$line";
 done;
 
       #{ "SETREPEAT",  cmd_setrepeat },
