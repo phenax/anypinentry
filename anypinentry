@@ -12,13 +12,28 @@ prompt="Password :: ";
 description="";
 keyinfo="";
 
-prompt_action='dmenu -P -p "$AP_PROMPT"';
-confirm_action='';
+YES="Yes";
+NO="No";
+
+promt_action='dmenu -P -p "$AP_PROMPT"';
+confirm_action='echo -e "$AP_YES\n$AP_NO" | dmenu -p "$AP_PROMPT"';
 
 ask_password() {
   export AP_PROMPT="$prompt";
   echo -n '' | bash -c "$prompt_action" 2> /dev/null;
 }
+confirm() {
+  export AP_PROMPT="$prompt";
+  export AP_YES="$YES";
+  export AP_NO="$NO";
+  echo -n '' | bash -c "$confirm_action" 2> /dev/null;
+}
+
+cancelled_error() { echo "ERR 99 Operation cancelled <Unspecified source>"; }
+com_error() { echo "ERR 99 Operation cancelled <Unspecified source>"; }
+
+
+
 
 save_option() {
   echo "OK";
@@ -26,19 +41,26 @@ save_option() {
 
 get_info() {
   case "$1" in
-    version) echo "D $VERSION" && echo "OK" ;;
-    pid) echo "D $BASHPID" && echo "OK" ;;
-    *) echo "ERR 280 IPC parameter error <Unspecified source>" ;;
+    version)  echo "D $VERSION" && echo "OK" ;;
+    pid)      echo "D $BASHPID" && echo "OK" ;;
+    *)        com_error ;;
   esac;
 }
 
+
 password_prompt() {
+  local pass="";
   if pass=$(ask_password); then
     [[ ! -z "$pass" ]] && echo "D $pass";
     echo "OK";
   else
-    echo "ERR 99 Operation cancelled <Unspecified source>";
+    cancelled_error;
   fi;
+}
+
+confirm_prompt() {
+  local res=$(confirm);
+  [[ "$res" == "$YES" ]] && echo "OK" || cancelled_error;
 }
 
 interpret_command() {
@@ -46,18 +68,22 @@ interpret_command() {
   data="$(echo "$1" | cut -d' ' -f2-)";
 
   case "$cmd" in
-    INIT) echo "OK Pleased to meet you" ;;
-    OPTION) save_option "$data" ;;
-    GETINFO) get_info "$data" ;;
-    SETTITLE) title="$data" && echo "OK" ;;
-    SETPROMPT) prompt="$data" && echo "OK" ;;
-    SETDESC) description="$data" && echo "OK" ;;
-    SETKEYINFO) keyinfo="$data" && echo "OK" ;;
-    GETPIN) password_prompt ;;
-    BYE) echo "OK closing connection" && exit 0; ;;
-    *) echo "OK" ;;
+    INIT)          echo "OK Pleased to meet you" ;;
+    OPTION)        save_option "$data" ;;
+    GETINFO)       get_info "$data" ;;
+    SETTITLE)      title="$data" && echo "OK" ;;
+    SETPROMPT)     prompt="$data" && echo "OK" ;;
+    SETDESC)       description="$data" && echo "OK" ;;
+    SETKEYINFO)    keyinfo="$data" && echo "OK" ;;
+    CONFIRM)       confirm_prompt ;;
+    GETPIN)        password_prompt ;;
+    BYE)           echo "OK closing connection" && exit 0; ;;
+    *)             echo "OK" ;;
   esac;
 }
+
+
+
 
 help() {
   echo "Usage: $0 [-D DISPLAY] [--prompt script] [--confirm script] [-hv]";
@@ -70,8 +96,8 @@ parse_cliargs() {
     -D|--display) export DISPLAY="$2"; shift 1 ;;
     --prompt) prompt_action="$2"; shift 1 ;;
     --confirm) confirm_action="$2"; shift 1 ;;
-    -v) echo "anypinentry-$VERSION" && exit 0 ;;
-    -h) help && exit 0 ;;
+    -v|--version) echo "anypinentry-$VERSION" && exit 0 ;;
+    -h|--help) help && exit 0 ;;
     *) help && exit 1 ;;
   esac;
 
@@ -79,6 +105,9 @@ parse_cliargs() {
   parse_cliargs "$@";
 }
 
+
+
+# Main
 parse_cliargs "$@";
 
 interpret_command "INIT";
@@ -93,7 +122,6 @@ done;
       #{ "SETOK",      cmd_setok },
       #{ "SETNOTOK",   cmd_setnotok },
       #{ "SETCANCEL",  cmd_setcancel },
-      #{ "CONFIRM",    cmd_confirm },
       #{ "MESSAGE",    cmd_message },
       #{ "SETQUALITYBAR", cmd_setqualitybar },
       #{ "SETQUALITYBAR_TT", cmd_setqualitybar_tt },
