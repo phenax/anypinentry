@@ -8,24 +8,23 @@ if [[ -z "$DISPLAY" ]]; then
 fi
 
 title="";
-prompt="Password :: ";
+AP_PROMPT="Password :: ";
 description="";
 keyinfo="";
+repeat="";
 
-YES="Yes";
-NO="No";
+AP_YES="Yes";
+AP_NO="No";
 
-promt_action='dmenu -P -p "$AP_PROMPT"';
+prompt_action='dmenu -P -p "$AP_PROMPT"';
 confirm_action='echo -e "$AP_YES\n$AP_NO" | dmenu -p "$AP_PROMPT"';
 
 ask_password() {
-  export AP_PROMPT="$prompt";
+  export AP_PROMPT;
   echo -n '' | bash -c "$prompt_action" 2> /dev/null;
 }
 confirm() {
-  export AP_PROMPT="$prompt";
-  export AP_YES="$YES";
-  export AP_NO="$NO";
+  export AP_PROMPT; export AP_YES; export AP_NO;
   echo -n '' | bash -c "$confirm_action" 2> /dev/null;
 }
 
@@ -51,8 +50,14 @@ get_info() {
 password_prompt() {
   local pass="";
   if pass=$(ask_password); then
-    [[ ! -z "$pass" ]] && echo "D $pass";
-    echo "OK";
+    if [[ "$repeat" == "repeat" ]]; then
+      repeat="";
+      password_prompt "$pass";
+    else
+      [[ ! -z "$pass" ]] && echo "D $pass";
+      echo "OK";
+      # Compare $1 with pass
+    fi;
   else
     cancelled_error;
   fi;
@@ -60,7 +65,7 @@ password_prompt() {
 
 confirm_prompt() {
   local res=$(confirm);
-  [[ "$res" == "$YES" ]] && echo "OK" || cancelled_error;
+  [[ "$res" == "$AP_YES" ]] && echo "OK" || cancelled_error;
 }
 
 interpret_command() {
@@ -72,12 +77,13 @@ interpret_command() {
     OPTION)        save_option "$data" ;;
     GETINFO)       get_info "$data" ;;
     SETTITLE)      title="$data" && echo "OK" ;;
-    SETPROMPT)     prompt="$data" && echo "OK" ;;
-    SETDESC)       description="$data" && echo "OK" ;;
+    SETPROMPT)     AP_PROMPT="$data" && echo "OK" ;;
     SETKEYINFO)    keyinfo="$data" && echo "OK" ;;
+    SETREPEAT)     repeat="$data" && echo "OK" ;;
+    SETDESC)       description="$data" && echo "OK" ;;
     CONFIRM)       confirm_prompt ;;
     GETPIN)        password_prompt ;;
-    BYE)           echo "OK closing connection" && exit 0; ;;
+    BYE)           echo "OK closing connection" && exit 0 ;;
     *)             echo "OK" ;;
   esac;
 }
@@ -93,12 +99,12 @@ parse_cliargs() {
   [[ $# -le 0 ]] && return 0;
 
   case "$1" in
-    -D|--display) export DISPLAY="$2"; shift 1 ;;
-    --prompt) prompt_action="$2"; shift 1 ;;
-    --confirm) confirm_action="$2"; shift 1 ;;
-    -v|--version) echo "anypinentry-$VERSION" && exit 0 ;;
-    -h|--help) help && exit 0 ;;
-    *) help && exit 1 ;;
+    -D|--display)   export DISPLAY="$2"; shift 1 ;;
+    --prompt)       prompt_action="$2"; shift 1 ;;
+    --confirm)      confirm_action="$2"; shift 1 ;;
+    -v|--version)   echo "anypinentry-$VERSION" && exit 0 ;;
+    -h|--help)      help && exit 0 ;;
+    *)              help && exit 1 ;;
   esac;
 
   shift 1;
