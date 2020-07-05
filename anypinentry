@@ -13,11 +13,13 @@ description="";
 keyinfo="";
 repeat="";
 
+AP_REPEAT_ERROR_STRING="Passwords don't match";
 AP_YES="Yes";
 AP_NO="No";
 
 prompt_action='dmenu -P -p "$AP_PROMPT"';
 confirm_action='echo -e "$AP_YES\n$AP_NO" | dmenu -p "$AP_PROMPT"';
+display_error_action='notify-send -a "Pinentry" "$AP_ERROR"';
 
 # :: Prompt string (default if empty)
 ask_password() {
@@ -29,6 +31,11 @@ confirm() {
   export AP_PROMPT="${1:-"$prompt_string"}";
   export AP_YES; export AP_NO;
   echo -n '' | bash -c "$confirm_action" 2> /dev/null;
+}
+# :: Error text
+show_error() {
+  export AP_ERROR="$1";
+  bash -c "$display_error_action" 2> /dev/null;
 }
 
 cancelled_error() { echo "ERR 99 Operation cancelled <Unspecified source>"; }
@@ -59,6 +66,7 @@ password_prompt() {
       # If password repeat attempt failed, try again,
       # Else continue
       if [[ ! -z "$2" ]] && [[ "$pass" != "$2" ]]; then
+        show_error "$AP_REPEAT_ERROR_STRING";
         password_prompt "$repeat";
       else
         [[ ! -z "$pass" ]] && echo "D $pass";
@@ -82,18 +90,19 @@ interpret_command() {
 
   # Case insensitive search
   case "${cmd^^}" in
-    INIT)          echo "OK Pleased to meet you" ;;
-    OPTION)        save_option "$data" ;;
-    GETINFO)       get_info "$data" ;;
-    SETTITLE)      title="$data" && echo "OK" ;;
-    SETPROMPT)     prompt_string="$data" && echo "OK" ;;
-    SETKEYINFO)    keyinfo="$data" && echo "OK" ;;
-    SETREPEAT)     repeat="${data:-"repeat"}" && echo "OK" ;;
-    SETDESC)       description="$data" && echo "OK" ;;
-    CONFIRM)       confirm_prompt ;;
-    GETPIN)        password_prompt "$repeat" "" ;;
-    BYE)           echo "OK closing connection" && exit 0 ;;
-    *)             echo "OK" ;;
+    INIT)             echo "OK Pleased to meet you" ;;
+    OPTION)           save_option "$data" ;;
+    GETINFO)          get_info "$data" ;;
+    SETTITLE)         title="$data" && echo "OK" ;;
+    SETPROMPT)        prompt_string="$data" && echo "OK" ;;
+    SETKEYINFO)       keyinfo="$data" && echo "OK" ;;
+    SETREPEAT)        repeat="${data:-"repeat"}" && echo "OK" ;;
+    SETDESC)          description="$data" && echo "OK" ;;
+    SETREPEATERROR)   AP_REPEAT_ERROR_STRING="$data" && echo "OK" ;;
+    CONFIRM)          confirm_prompt ;;
+    GETPIN)           password_prompt "$repeat" "" ;;
+    BYE)              echo "OK closing connection" && exit 0 ;;
+    *)                echo "OK" ;;
   esac;
 }
 
@@ -108,12 +117,13 @@ parse_cliargs() {
   [[ $# -le 0 ]] && return 0;
 
   case "$1" in
-    -D|--display)   export DISPLAY="$2"; shift 1 ;;
-    --prompt)       prompt_action="$2"; shift 1 ;;
-    --confirm)      confirm_action="$2"; shift 1 ;;
-    -v|--version)   echo "anypinentry-$VERSION" && exit 0 ;;
-    -h|--help)      help && exit 0 ;;
-    *)              help && exit 1 ;;
+    -D|--display)       export DISPLAY="$2"; shift 1 ;;
+    --error-command)    display_error_action="$2"; shift 1 ;;
+    --prompt)           prompt_action="$2"; shift 1 ;;
+    --confirm)          confirm_action="$2"; shift 1 ;;
+    -v|--version)       echo "anypinentry-$VERSION" && exit 0 ;;
+    -h|--help)          help && exit 0 ;;
+    *)                  help && exit 1 ;;
   esac;
 
   shift 1;
@@ -131,14 +141,13 @@ while read line; do
   interpret_command "$line";
 done;
 
-      #{ "SETREPEATERROR", cmd_setrepeaterror },
-      #{ "SETERROR",   cmd_seterror },
-      #{ "SETOK",      cmd_setok },
-      #{ "SETNOTOK",   cmd_setnotok },
-      #{ "SETCANCEL",  cmd_setcancel },
-      #{ "MESSAGE",    cmd_message },
-      #{ "SETQUALITYBAR", cmd_setqualitybar },
-      #{ "SETQUALITYBAR_TT", cmd_setqualitybar_tt },
-      #{ "SETTIMEOUT", cmd_settimeout },
-      #{ "CLEARPASSPHRASE", cmd_clear_passphrase },
+#  "SETERROR"
+#  "SETOK"
+#  "SETNOTOK"
+#  "SETCANCEL"
+#  "MESSAGE"
+#  "SETQUALITYBAR"
+#  "SETQUALITYBAR_TT"
+#  "SETTIMEOUT"
+#  "CLEARPASSPHRASE"
 
