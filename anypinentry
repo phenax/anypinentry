@@ -13,7 +13,7 @@ description="";
 keyinfo="";
 repeat="";
 
-AP_REPEAT_ERROR_STRING="Passwords don't match";
+error__password_mismatch="Passwords don't match";
 AP_YES="Yes";
 AP_NO="No";
 
@@ -66,7 +66,7 @@ password_prompt() {
       # If password repeat attempt failed, try again,
       # Else continue
       if [[ ! -z "$2" ]] && [[ "$pass" != "$2" ]]; then
-        show_error "$AP_REPEAT_ERROR_STRING";
+        show_error "$error__password_mismatch";
         password_prompt "$repeat";
       else
         [[ ! -z "$pass" ]] && echo "D $pass";
@@ -98,7 +98,7 @@ interpret_command() {
     SETKEYINFO)       keyinfo="$data" && echo "OK" ;;
     SETREPEAT)        repeat="${data:-"repeat"}" && echo "OK" ;;
     SETDESC)          description="$data" && echo "OK" ;;
-    SETREPEATERROR)   AP_REPEAT_ERROR_STRING="$data" && echo "OK" ;;
+    SETREPEATERROR)   error__password_mismatch="$data" && echo "OK" ;;
     CONFIRM)          confirm_prompt ;;
     GETPIN)           password_prompt "$repeat" "" ;;
     BYE)              echo "OK closing connection" && exit 0 ;;
