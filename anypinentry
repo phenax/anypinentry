@@ -72,7 +72,7 @@ interpret_command() {
   cmd="$(echo "$1" | cut -d' ' -f1)";
   data="$(echo "$1" | cut -d' ' -f2-)";
 
-  case "$cmd" in
+  case "${cmd^^}" in
     INIT)          echo "OK Pleased to meet you" ;;
     OPTION)        save_option "$data" ;;
     GETINFO)       get_info "$data" ;;
