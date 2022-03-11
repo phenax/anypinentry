@@ -22,5 +22,5 @@ The following variables inside `./anypinentry` script file can be configured.
 You will need to use `AP_PROMPT`, `AP_YES`, `AP_NO`, `AP_ERROR` variables inside your actions.
 
 * `prompt_action` - Action to show a prompt asking for password (Example using dmenu with password patch - `dmenu -P -p "$AP_PROMPT"`)
-* `confirm_action` - Action to confirm an action (YES or NO) (Example with dmenu - `echo -e "$AP_YES\n$AP_NO" | dmenu -p "$AP_PROMPT"`)
+* `confirm_action` - Action to confirm something (YES or NO) (Example with dmenu - `echo -e "$AP_YES\n$AP_NO" | dmenu -p "$AP_PROMPT"`)
 * `display_error_action` - Action to display error messages to user (Example with notify-send - `notify-send "$AP_ERROR"`)
