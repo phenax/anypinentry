@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-VERSION="0.0";
+VERSION="0.1";
 
 if [[ -z "$DISPLAY" ]]; then
     DISPLAY=":1";
@@ -114,20 +114,46 @@ help() {
 }
 
 parse_cliargs() {
-  [[ $# -le 0 ]] && return 0;
+  getopt -T
+  if [ "$?" -ne 4 ]; then
+      printf "Your version of getopt(1) is out of date\n" >&2
+      exit 1
+  fi
 
-  case "$1" in
-    -D|--display)       export DISPLAY="$2"; shift 1 ;;
-    --error-command)    display_error_action="$2"; shift 1 ;;
-    --prompt)           prompt_action="$2"; shift 1 ;;
-    --confirm)          confirm_action="$2"; shift 1 ;;
-    -v|--version)       echo "anypinentry-$VERSION" && exit 0 ;;
-    -h|--help)          help && exit 0 ;;
-    *)                  help && exit 1 ;;
-  esac;
+  TEMP=$(getopt -n "$0" -o dD:T:N:C:M:o:gWc:a:h \
+                --long debug,display:,ttyname:,ttytype:,lc-ctype:,lc-messages:,timeout:,no-global-grab,parent-wid,colors:,ttyalert:,prompt:,confirm:,error:,help,version \
+                -- "$@")
 
-  shift 1;
-  parse_cliargs "$@";
+  if [ $? -ne 0 ]; then
+      help
+      exit 1
+  fi
+
+  eval set -- "$TEMP"
+  unset TEMP
+
+  while true; do
+      case "$1" in
+          -d | --debug)          shift ;;
+          -D | --display)        shift 2 ;;
+          -T | --ttyname)        shift 2 ;;
+          -N | --ttytype)        shift 2 ;;
+          -C | --lc-ctype)       shift 2 ;;
+          -M | --lc-messages)    shift 2 ;;
+          -o | --timeout)        shift 2 ;;
+          -g | --no-global-grab) shift ;;
+          -W | --parent-wid)     shift ;;
+          -c | --colors)         echo "colors=$2"; shift 2 ;;
+          -a | --ttyalert)       shift 2 ;;
+               --error-command)  display_error_action="$2"; shift 2 ;;
+               --prompt)         prompt_action="$2"; shift 2 ;;
+               --confirm)        confirm_action="$2"; shift 2 ;;
+          -h | --help)           help && exit 0 ;;
+               --version)        echo "anypinentry-$VERSION" && exit 0 ;;
+          --)                    shift; break ;;
+          *)                     ;;
+      esac
+  done
 }
 
 
