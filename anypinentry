@@ -40,6 +40,8 @@ show_error() {
 
 cancelled_error() { echo "ERR 99 Operation cancelled <Unspecified source>"; }
 com_error() { echo "ERR 99 Operation cancelled <Unspecified source>"; }
+not_implemented_error() { echo "ERR 536870981 Not implemented <User defined source 1>"; }
+unknown_error() { echo "ERR 536871187 Unknown IPC command <User defined source 1>"; }
 
 
 
@@ -84,25 +86,75 @@ confirm_prompt() {
   [[ "$res" == "$AP_YES" ]] && echo "OK" || cancelled_error;
 }
 
+pinentry_help() {
+    cat <<END
+# NOP
+# CANCEL
+# OPTION
+# BYE
+# AUTH
+# RESET
+# END
+# HELP
+# SETDESC
+# SETPROMPT
+# SETKEYINFO
+# SETREPEAT
+# SETREPEATERROR
+# SETERROR
+# SETOK
+# SETNOTOK
+# SETCANCEL
+# GETPIN
+# CONFIRM
+# MESSAGE
+# SETQUALITYBAR
+# SETQUALITYBAR_TT
+# SETGENPIN
+# SETGENPIN_TT
+# GETINFO
+# SETTITLE
+# SETTIMEOUT
+# CLEARPASSPHRASE
+END
+}
+
 interpret_command() {
   cmd="$(echo "$1" | cut -d' ' -f1)";
   data="$(echo "$1" | cut -d' ' -f2-)";
 
   # Case insensitive search
   case "${cmd^^}" in
-    INIT)             echo "OK Pleased to meet you" ;;
+    NOP)              ;;
+    CANCEL)           not_implemented_error ;;
     OPTION)           save_option "$data" ;;
-    GETINFO)          get_info "$data" ;;
-    SETTITLE)         title="$data" && echo "OK" ;;
-    SETPROMPT)        prompt_string="$data" && echo "OK" ;;
-    SETKEYINFO)       keyinfo="$data" && echo "OK" ;;
-    SETREPEAT)        repeat="${data:-"repeat"}" && echo "OK" ;;
-    SETDESC)          description="$data" && echo "OK" ;;
-    SETREPEATERROR)   error__password_mismatch="$data" && echo "OK" ;;
-    CONFIRM)          confirm_prompt ;;
+    BYE)              echo "OK closing connection"; exit 0 ;;
+    AUTH)             not_implemented_error ;;
+    RESET)            not_implemented_error ;;
+    END)              not_implemented_error ;;
+    HELP)             pinentry_help ;;
+    SETDESC)          description="$data"; echo "OK" ;;
+    SETPROMPT)        prompt_string="$data"; echo "OK" ;;
+    SETKEYINFO)       keyinfo="$data"; echo "OK" ;;
+    SETREPEAT)        repeat="${data:-"repeat"}"; echo "OK" ;;
+    SETREPEATERROR)   error__password_mismatch="$data"; echo "OK" ;;
+    SETERROR)         not_implemented_error ;;
+    SETOK)            setok="$data" ;;
+    SETNOTOK)         setnotok="$data" ;;
+    SETCANCEL)        setcancel="$data" ;;
     GETPIN)           password_prompt "$repeat" "" ;;
-    BYE)              echo "OK closing connection" && exit 0 ;;
-    *)                echo "OK" ;;
+    CONFIRM)          confirm_prompt ;;
+    MESSAGE)          not_implemented_error ;;
+    SETQUALITYBAR)    not_implemented_error ;;
+    SETQUALITYBAR_TT) not_implemented_error ;;
+    SETGENPIN)        not_implemented_error ;;
+    SETGENPIN_TT)     not_implemented_error ;;
+    GETINFO)          get_info "$data" ;;
+    SETTITLE)         title="$data"; echo "OK" ;;
+    SETTIMEOUT)       not_implemented_error ;;
+    CLEARPASSPHRASE)  not_implemented_error ;;
+    '')               ;;
+    *)                unknown_error ;;
   esac;
 }
 
@@ -199,7 +251,8 @@ parse_cliargs() {
 # Main
 parse_cliargs "$@";
 
-interpret_command "INIT";
+# Initialize protocol
+echo "OK Pleased to meet you"
 
 while read line; do
   interpret_command "$line";
