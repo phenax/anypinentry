@@ -38,8 +38,8 @@ show_error() {
   bash -c "$display_error_action" 2> /dev/null;
 }
 
-cancelled_error() { echo "ERR 99 Operation cancelled <Unspecified source>"; }
-com_error() { echo "ERR 99 Operation cancelled <Unspecified source>"; }
+cancelled_error() { echo "ERR 83886179 Operation cancelled <Pinentry>"; }
+com_error() { echo "ERR 83886360 IP parameter error <Pinentry>>"; }
 not_implemented_error() { echo "ERR 536870981 Not implemented <User defined source 1>"; }
 unknown_error() { echo "ERR 536871187 Unknown IPC command <User defined source 1>"; }
 
