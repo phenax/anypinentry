@@ -111,6 +111,44 @@ interpret_command() {
 
 help() {
   echo "Usage: $0 [-D DISPLAY] [--prompt script] [--confirm script] [-hv]";
+
+cat <<END
+$0 (pinentry) $VERSION
+Copyright (C) 2020 Akshay Nair
+This software is released under the MIT License <https://www.mit-license.org/>
+
+END
+
+printf "Usage: %s [options] (-h for help)\n" "$0" >&2
+
+cat <<END
+Ask securely for a secret and print it to stdout.
+Options:
+     --prompt CMD           How to ask for the secret
+     --confirm CMD          How to confirm the secret
+     --error-command CMD    What to do if secret is not confirmed
+
+CMD will be executed by bash(1). The defaults are:
+
+prompt ='dmenu -P -p "$prompt_string"';
+confirm ='echo -e "$AP_YES\n$AP_NO" | dmenu -p "$prompt_string"';
+error-command ='notify-send -a "Pinentry" "$error__password_mismatch"';
+
+Standard pinentry options
+ -d, --debug                Turn on debugging output
+ -D, --display DISPLAY      Set the X display
+ -T, --ttyname FILE         Set the tty terminal node name
+ -N, --ttytype NAME         Set the tty terminal type
+ -C, --lc-ctype STRING      Set the tty LC_CTYPE value
+ -M, --lc-messages STRING   Set the tty LC_MESSAGES value
+ -o, --timeout SECS         Timeout waiting for input after this many seconds
+ -g, --no-global-grab       Grab keyboard only while window is focused
+ -W, --parent-wid           Parent window ID (for positioning)
+ -c, --colors STRING        Set custom colors for ncurses
+ -a, --ttyalert STRING      Set the alert mode (none, beep or flash)
+
+Please report bugs to <https://github.com/phenax/any-pinentry/issues>.
+END
 }
 
 parse_cliargs() {
