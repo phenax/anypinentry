@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-VERSION="0.0";
+VERSION="0.1";
 
 if [[ -z "$DISPLAY" ]]; then
     DISPLAY=":1";
@@ -8,7 +8,7 @@ if [[ -z "$DISPLAY" ]]; then
 fi
 
 title="";
-prompt_string="Password :: ";
+prompt_string="PIN: ";
 description="";
 keyinfo="";
 repeat="";
@@ -38,8 +38,10 @@ show_error() {
   bash -c "$display_error_action" 2> /dev/null;
 }
 
-cancelled_error() { echo "ERR 99 Operation cancelled <Unspecified source>"; }
-com_error() { echo "ERR 99 Operation cancelled <Unspecified source>"; }
+cancelled_error() { echo "ERR 83886179 Operation cancelled <Pinentry>"; }
+com_error() { echo "ERR 83886360 IP parameter error <Pinentry>>"; }
+not_implemented_error() { echo "ERR 536870981 Not implemented <User defined source 1>"; }
+unknown_error() { echo "ERR 536871187 Unknown IPC command <User defined source 1>"; }
 
 
 
@@ -84,25 +86,75 @@ confirm_prompt() {
   [[ "$res" == "$AP_YES" ]] && echo "OK" || cancelled_error;
 }
 
+pinentry_help() {
+    cat <<END
+# NOP
+# CANCEL
+# OPTION
+# BYE
+# AUTH
+# RESET
+# END
+# HELP
+# SETDESC
+# SETPROMPT
+# SETKEYINFO
+# SETREPEAT
+# SETREPEATERROR
+# SETERROR
+# SETOK
+# SETNOTOK
+# SETCANCEL
+# GETPIN
+# CONFIRM
+# MESSAGE
+# SETQUALITYBAR
+# SETQUALITYBAR_TT
+# SETGENPIN
+# SETGENPIN_TT
+# GETINFO
+# SETTITLE
+# SETTIMEOUT
+# CLEARPASSPHRASE
+END
+}
+
 interpret_command() {
   cmd="$(echo "$1" | cut -d' ' -f1)";
   data="$(echo "$1" | cut -d' ' -f2-)";
 
   # Case insensitive search
   case "${cmd^^}" in
-    INIT)             echo "OK Pleased to meet you" ;;
+    NOP)              ;;
+    CANCEL)           not_implemented_error ;;
     OPTION)           save_option "$data" ;;
-    GETINFO)          get_info "$data" ;;
-    SETTITLE)         title="$data" && echo "OK" ;;
-    SETPROMPT)        prompt_string="$data" && echo "OK" ;;
-    SETKEYINFO)       keyinfo="$data" && echo "OK" ;;
-    SETREPEAT)        repeat="${data:-"repeat"}" && echo "OK" ;;
-    SETDESC)          description="$data" && echo "OK" ;;
-    SETREPEATERROR)   error__password_mismatch="$data" && echo "OK" ;;
-    CONFIRM)          confirm_prompt ;;
+    BYE)              echo "OK closing connection"; exit 0 ;;
+    AUTH)             not_implemented_error ;;
+    RESET)            not_implemented_error ;;
+    END)              not_implemented_error ;;
+    HELP)             pinentry_help ;;
+    SETDESC)          description="$data"; echo "OK" ;;
+    SETPROMPT)        prompt_string="$data"; echo "OK" ;;
+    SETKEYINFO)       keyinfo="$data"; echo "OK" ;;
+    SETREPEAT)        repeat="${data:-"repeat"}"; echo "OK" ;;
+    SETREPEATERROR)   error__password_mismatch="$data"; echo "OK" ;;
+    SETERROR)         not_implemented_error ;;
+    SETOK)            setok="$data" ;;
+    SETNOTOK)         setnotok="$data" ;;
+    SETCANCEL)        setcancel="$data" ;;
     GETPIN)           password_prompt "$repeat" "" ;;
-    BYE)              echo "OK closing connection" && exit 0 ;;
-    *)                echo "OK" ;;
+    CONFIRM)          confirm_prompt ;;
+    MESSAGE)          not_implemented_error ;;
+    SETQUALITYBAR)    not_implemented_error ;;
+    SETQUALITYBAR_TT) not_implemented_error ;;
+    SETGENPIN)        not_implemented_error ;;
+    SETGENPIN_TT)     not_implemented_error ;;
+    GETINFO)          get_info "$data" ;;
+    SETTITLE)         title="$data"; echo "OK" ;;
+    SETTIMEOUT)       not_implemented_error ;;
+    CLEARPASSPHRASE)  not_implemented_error ;;
+    '')               ;;
+    *)                unknown_error ;;
   esac;
 }
 
@@ -111,23 +163,87 @@ interpret_command() {
 
 help() {
   echo "Usage: $0 [-D DISPLAY] [--prompt script] [--confirm script] [-hv]";
+
+cat <<END
+$0 (pinentry) $VERSION
+Copyright (C) 2020 Akshay Nair
+This software is released under the MIT License <https://www.mit-license.org/>
+
+END
+
+printf "Usage: %s [options] (-h for help)\n" "$0" >&2
+
+cat <<END
+Ask securely for a secret and print it to stdout.
+Options:
+     --prompt CMD           How to ask for the secret
+     --confirm CMD          How to confirm the secret
+     --error-command CMD    What to do if secret is not confirmed
+
+CMD will be executed by bash(1). The defaults are:
+
+prompt ='dmenu -P -p "$prompt_string"';
+confirm ='echo -e "$AP_YES\n$AP_NO" | dmenu -p "$prompt_string"';
+error-command ='notify-send -a "Pinentry" "$error__password_mismatch"';
+
+Standard pinentry options
+ -d, --debug                Turn on debugging output
+ -D, --display DISPLAY      Set the X display
+ -T, --ttyname FILE         Set the tty terminal node name
+ -N, --ttytype NAME         Set the tty terminal type
+ -C, --lc-ctype STRING      Set the tty LC_CTYPE value
+ -M, --lc-messages STRING   Set the tty LC_MESSAGES value
+ -o, --timeout SECS         Timeout waiting for input after this many seconds
+ -g, --no-global-grab       Grab keyboard only while window is focused
+ -W, --parent-wid           Parent window ID (for positioning)
+ -c, --colors STRING        Set custom colors for ncurses
+ -a, --ttyalert STRING      Set the alert mode (none, beep or flash)
+
+Please report bugs to <https://github.com/phenax/any-pinentry/issues>.
+END
 }
 
 parse_cliargs() {
-  [[ $# -le 0 ]] && return 0;
+  getopt -T
+  if [ "$?" -ne 4 ]; then
+      printf "Your version of getopt(1) is out of date\n" >&2
+      exit 1
+  fi
 
-  case "$1" in
-    -D|--display)       export DISPLAY="$2"; shift 1 ;;
-    --error-command)    display_error_action="$2"; shift 1 ;;
-    --prompt)           prompt_action="$2"; shift 1 ;;
-    --confirm)          confirm_action="$2"; shift 1 ;;
-    -v|--version)       echo "anypinentry-$VERSION" && exit 0 ;;
-    -h|--help)          help && exit 0 ;;
-    *)                  help && exit 1 ;;
-  esac;
+  TEMP=$(getopt -n "$0" -o dD:T:N:C:M:o:gWc:a:h \
+                --long debug,display:,ttyname:,ttytype:,lc-ctype:,lc-messages:,timeout:,no-global-grab,parent-wid,colors:,ttyalert:,prompt:,confirm:,error:,help,version \
+                -- "$@")
 
-  shift 1;
-  parse_cliargs "$@";
+  if [ $? -ne 0 ]; then
+      help
+      exit 1
+  fi
+
+  eval set -- "$TEMP"
+  unset TEMP
+
+  while true; do
+      case "$1" in
+          -d | --debug)          shift ;;
+          -D | --display)        shift 2 ;;
+          -T | --ttyname)        shift 2 ;;
+          -N | --ttytype)        shift 2 ;;
+          -C | --lc-ctype)       shift 2 ;;
+          -M | --lc-messages)    shift 2 ;;
+          -o | --timeout)        shift 2 ;;
+          -g | --no-global-grab) shift ;;
+          -W | --parent-wid)     shift ;;
+          -c | --colors)         echo "colors=$2"; shift 2 ;;
+          -a | --ttyalert)       shift 2 ;;
+               --error-command)  display_error_action="$2"; shift 2 ;;
+               --prompt)         prompt_action="$2"; shift 2 ;;
+               --confirm)        confirm_action="$2"; shift 2 ;;
+          -h | --help)           help && exit 0 ;;
+               --version)        echo "anypinentry-$VERSION" && exit 0 ;;
+          --)                    shift; break ;;
+          *)                     ;;
+      esac
+  done
 }
 
 
@@ -135,7 +251,8 @@ parse_cliargs() {
 # Main
 parse_cliargs "$@";
 
-interpret_command "INIT";
+# Initialize protocol
+echo "OK Pleased to meet you"
 
 while read line; do
   interpret_command "$line";
