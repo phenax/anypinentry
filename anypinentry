@@ -1,8 +1,10 @@
-#!/usr/bin/env bash
+#!/bin/sh
+
+set -e
 
 VERSION="0.1";
 
-if [[ -z "$DISPLAY" ]]; then
+if [ -z "$DISPLAY" ]; then
     DISPLAY=":1";
     export DISPLAY;
 fi
@@ -24,18 +26,18 @@ display_error_action='notify-send -a "Pinentry" "$AP_ERROR"';
 # :: Prompt string (default if empty)
 ask_password() {
   export AP_PROMPT="${1:-"$prompt_string"}";
-  echo -n '' | bash -c "$prompt_action" 2> /dev/null;
+  printf '' | sh -c "$prompt_action" 2> /dev/null;
 }
 # :: Prompt string (default if empty)
 confirm() {
   export AP_PROMPT="${1:-"$prompt_string"}";
   export AP_YES; export AP_NO;
-  echo -n '' | bash -c "$confirm_action" 2> /dev/null;
+  printf '' | sh -c "$confirm_action" 2> /dev/null;
 }
 # :: Error text
 show_error() {
   export AP_ERROR="$1";
-  bash -c "$display_error_action" 2> /dev/null;
+  sh -c "$display_error_action" 2> /dev/null;
 }
 
 cancelled_error() { echo "ERR 83886179 Operation cancelled <Pinentry>"; }
@@ -53,25 +55,25 @@ save_option() {
 get_info() {
   case "$1" in
     version)  echo "D $VERSION" && echo "OK" ;;
-    pid)      echo "D $BASHPID" && echo "OK" ;;
+    pid)      echo "D $$" && echo "OK" ;;
     *)        com_error ;;
   esac;
 }
 
 # :: Repeat string -> Password -> OK | ERR
 password_prompt() {
-  local pass="";
-  if pass=$(ask_password "$([[ -z "$1" ]] && echo "$repeat")"); then
-    if [[ ! -z "$1" ]]; then
+  pass="";
+  if pass=$(ask_password "$([ -z "$1" ] && echo "$repeat")"); then
+    if [ -n "$1" ]; then
       password_prompt ""  "$pass";
     else
       # If password repeat attempt failed, try again,
       # Else continue
-      if [[ ! -z "$2" ]] && [[ "$pass" != "$2" ]]; then
+      if [ -n "$2" ] && [ "$pass" != "$2" ]; then
         show_error "$error__password_mismatch";
         password_prompt "$repeat";
       else
-        [[ ! -z "$pass" ]] && echo "D $pass";
+        [ -n "$pass" ] && echo "D $pass";
         echo "OK";
       fi;
     fi;
@@ -82,8 +84,11 @@ password_prompt() {
 
 # :: OK | ERR
 confirm_prompt() {
-  local res=$(confirm);
-  [[ "$res" == "$AP_YES" ]] && echo "OK" || cancelled_error;
+  if [ "$(confirm)" = "$AP_YES" ]; then
+    echo "OK"
+  else
+    cancelled_error;
+  fi
 }
 
 pinentry_help() {
@@ -120,11 +125,10 @@ END
 }
 
 interpret_command() {
-  cmd="$(echo "$1" | cut -d' ' -f1)";
+  cmd="$(echo "$1" | cut -d' ' -f1 | tr a-z A-Z)";
   data="$(echo "$1" | cut -d' ' -f2-)";
 
-  # Case insensitive search
-  case "${cmd^^}" in
+  case "${cmd}" in
     NOP)              ;;
     CANCEL)           not_implemented_error ;;
     OPTION)           save_option "$data" ;;
@@ -180,7 +184,7 @@ Options:
      --confirm CMD          How to confirm the secret
      --error-command CMD    What to do if secret is not confirmed
 
-CMD will be executed by bash(1). The defaults are:
+CMD will be executed by sh(1). The defaults are:
 
 prompt ='dmenu -P -p "$prompt_string"';
 confirm ='echo -e "$AP_YES\n$AP_NO" | dmenu -p "$prompt_string"';
@@ -204,8 +208,8 @@ END
 }
 
 parse_cliargs() {
-  getopt -T
-  if [ "$?" -ne 4 ]; then
+  getopt -T || exit_status=$?
+  if [ $exit_status -ne 4 ]; then
       printf "Your version of getopt(1) is out of date\n" >&2
       exit 1
   fi
@@ -254,7 +258,7 @@ parse_cliargs "$@";
 # Initialize protocol
 echo "OK Pleased to meet you"
 
-while read line; do
+while read -r line; do
   interpret_command "$line";
 done;
 
