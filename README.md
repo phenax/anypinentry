@@ -5,9 +5,9 @@ You can now use any interface for password and confirmation prompts (`dmenu`, `r
 > Note: This is NOT a complete replacement for pinentry programs but it should cover most use-cases. Report any issues you face so the program can be improved
 
 ## Dependencies
-* bash
-* dmenu with password patch (for the default config only)
-* notify-send (for the default config only)
+* sh
+* dmenu with password patch (optional: for the default config only)
+* notify-send (optional: for the default config only)
 
 ## Usage
 1. Clone the repo to anywhere on your machine (you should maintain a fork in case you want to configure the default behavior)
