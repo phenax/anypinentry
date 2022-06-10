@@ -175,7 +175,7 @@ interpret_command() {
     SETTITLE)         title="$data"; echo "OK" ;;
     SETTIMEOUT)       not_implemented_error ;;
     CLEARPASSPHRASE)  not_implemented_error ;;
-    '')               ;;
+    '' | \#*)         ;;
     *)                unknown_error ;;
   esac;
 }
