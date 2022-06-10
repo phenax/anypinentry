@@ -143,6 +143,11 @@ END
 }
 
 interpret_command() {
+  # Refuse lines of more than 1000 bytes + newline
+  if [ $(echo "$1" | wc -c) -gt 1001 ]; then
+    echo "ERR too long"
+    return
+  fi
   cmd="$(echo "$1" | cut -d' ' -f1 | tr a-z A-Z)";
   data="$(echo "$1" | cut -d' ' -f2-)";
 
