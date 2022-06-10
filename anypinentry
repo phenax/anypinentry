@@ -91,6 +91,7 @@ password_prompt() {
   else
     cancelled_error;
   fi;
+  repeat=
 }
 
 # :: OK | ERR
