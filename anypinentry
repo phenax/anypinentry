@@ -8,9 +8,10 @@ if [ -z "$DISPLAY" ]; then
     DISPLAY=":1";
     export DISPLAY;
 fi
+prompt_string_default="PIN: "
 
 title="";
-prompt_string="PIN: ";
+prompt_string="$prompt_string_default";
 description="";
 keyinfo="";
 repeat="";
@@ -46,7 +47,17 @@ not_implemented_error() { echo "ERR 536870981 Not implemented <User defined sour
 unknown_error() { echo "ERR 536871187 Unknown IPC command <User defined source 1>"; }
 
 
-
+reset() {
+    description= 
+    prompt_string="$prompt_string_default" 
+    keyinfo= 
+    repeat= 
+    error__password_mismatch= 
+    setok= 
+    setnotok= 
+    setcancel= 
+    title= 
+}
 
 save_option() {
   echo "OK";
@@ -134,7 +145,7 @@ interpret_command() {
     OPTION)           save_option "$data" ;;
     BYE)              echo "OK closing connection"; exit 0 ;;
     AUTH)             not_implemented_error ;;
-    RESET)            not_implemented_error ;;
+    RESET)            reset ;;
     END)              not_implemented_error ;;
     HELP)             pinentry_help ;;
     SETDESC)          description="$data"; echo "OK" ;;
