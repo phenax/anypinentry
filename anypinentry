@@ -84,7 +84,13 @@ password_prompt() {
         show_error "$error__password_mismatch";
         password_prompt "$repeat";
       else
-        [ -n "$pass" ] && echo "D $pass";
+        if [ ! -z "$pass" ]; then
+            echo "D $pass" | 
+                sed 's/%/%25/; s/\r/%0D/' |  # % = 25 and CR = %0D
+                awk 'BEGIN {ORS="%0A"} /^..*$/ {print}' |  # LF = %0A
+                sed 's/%0A$//' # Strip trailing %0A
+            echo
+        fi
         echo "OK";
       fi;
     fi;
