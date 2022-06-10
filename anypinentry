@@ -65,8 +65,8 @@ save_option() {
 
 get_info() {
   case "$1" in
-    version)  echo "D $VERSION" && echo "OK" ;;
-    pid)      echo "D $$" && echo "OK" ;;
+    VERSION)  echo "D $VERSION" && echo "OK" ;;
+    PID)      echo "D $$" && echo "OK" ;;
     *)        com_error ;;
   esac;
 }
@@ -149,7 +149,7 @@ interpret_command() {
     return
   fi
   cmd="$(echo "$1" | cut -d' ' -f1 | tr a-z A-Z)";
-  data="$(echo "$1" | cut -d' ' -f2-)";
+  data="$(echo "$1" | cut -d' ' -f2- | tr a-z A-Z)";
 
   case "${cmd}" in
     NOP)              ;;
