@@ -1,4 +1,5 @@
 #!/bin/sh
+# Ref: http://info2html.sourceforge.net/cgi-bin/info2html-demo/info2html?%28pinentry%29Protocol
 
 set -e
 
