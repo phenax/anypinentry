@@ -8,9 +8,10 @@ if [ -z "$DISPLAY" ]; then
     DISPLAY=":1";
     export DISPLAY;
 fi
+prompt_string_default="PIN: "
 
 title="";
-prompt_string="PIN: ";
+prompt_string="$prompt_string_default";
 description="";
 keyinfo="";
 repeat="";
@@ -46,16 +47,27 @@ not_implemented_error() { echo "ERR 536870981 Not implemented <User defined sour
 unknown_error() { echo "ERR 536871187 Unknown IPC command <User defined source 1>"; }
 
 
-
+reset() {
+    description= 
+    prompt_string="$prompt_string_default" 
+    keyinfo= 
+    repeat= 
+    error__password_mismatch= 
+    setok= 
+    setnotok= 
+    setcancel= 
+    title= 
+}
 
 save_option() {
   echo "OK";
 }
 
 get_info() {
+  arg=$(echo "$1" | tr a-z A-Z)
   case "$1" in
-    version)  echo "D $VERSION" && echo "OK" ;;
-    pid)      echo "D $$" && echo "OK" ;;
+    VERSION)  echo "D $VERSION" && echo "OK" ;;
+    PID)      echo "D $$" && echo "OK" ;;
     *)        com_error ;;
   esac;
 }
@@ -73,13 +85,20 @@ password_prompt() {
         show_error "$error__password_mismatch";
         password_prompt "$repeat";
       else
-        [ -n "$pass" ] && echo "D $pass";
+        if [ ! -z "$pass" ]; then
+            echo "D $pass" | 
+                sed 's/%/%25/; s/\r/%0D/' |  # % = 25 and CR = %0D
+                awk 'BEGIN {ORS="%0A"} /^..*$/ {print}' |  # LF = %0A
+                sed 's/%0A$//' # Strip trailing %0A
+            echo
+        fi
         echo "OK";
       fi;
     fi;
   else
     cancelled_error;
   fi;
+  repeat=
 }
 
 # :: OK | ERR
@@ -125,6 +144,11 @@ END
 }
 
 interpret_command() {
+  # Refuse lines of more than 1000 bytes + newline
+  if [ $(echo "$1" | wc -c) -gt 1001 ]; then
+    echo "ERR too long"
+    return
+  fi
   cmd="$(echo "$1" | cut -d' ' -f1 | tr a-z A-Z)";
   data="$(echo "$1" | cut -d' ' -f2-)";
 
@@ -134,7 +158,7 @@ interpret_command() {
     OPTION)           save_option "$data" ;;
     BYE)              echo "OK closing connection"; exit 0 ;;
     AUTH)             not_implemented_error ;;
-    RESET)            not_implemented_error ;;
+    RESET)            reset ;;
     END)              not_implemented_error ;;
     HELP)             pinentry_help ;;
     SETDESC)          description="$data"; echo "OK" ;;
@@ -157,7 +181,7 @@ interpret_command() {
     SETTITLE)         title="$data"; echo "OK" ;;
     SETTIMEOUT)       not_implemented_error ;;
     CLEARPASSPHRASE)  not_implemented_error ;;
-    '')               ;;
+    '' | \#*)         ;;
     *)                unknown_error ;;
   esac;
 }
