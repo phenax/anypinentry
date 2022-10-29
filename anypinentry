@@ -66,7 +66,7 @@ save_option() {
 
 get_info() {
   arg=$(echo "$1" | tr a-z A-Z)
-  case "$1" in
+  case "$arg" in
     VERSION)  echo "D $VERSION" && echo "OK" ;;
     PID)      echo "D $$" && echo "OK" ;;
     *)        com_error ;;
