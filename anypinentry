@@ -157,7 +157,7 @@ interpret_command() {
     NOP)              ;;
     CANCEL)           not_implemented_error ;;
     OPTION)           save_option "$data" ;;
-    BYE)              exit 0 ;;
+    BYE)              echo "OK closing connection"; exit 0 ;;
     AUTH)             not_implemented_error ;;
     RESET)            reset ;;
     END)              not_implemented_error ;;
