@@ -151,7 +151,7 @@ interpret_command() {
     return
   fi
   cmd="$(echo "$1" | cut -d' ' -f1 | tr a-z A-Z)";
-  data="$(echo "$1" | cut -d' ' -f2-)";
+  data="$(echo "$1" | cut -d' ' -sf2-)";
 
   case "${cmd}" in
     NOP)              ;;
